@@ -15,13 +15,27 @@ function Bee:reset()
   self.y = VIRTUAL_HEIGHT / 2 - 2
 end
 
+function Bee:collidesWith(pillar)
+  if self.x > pillar.x + pillar.w or pillar.x > self.x + self.w then
+    return false
+  end
+
+  if self.y > pillar.y1 and self.y + self.h < pillar.y2 then
+    return false
+  end
+
+  return true
+end
+
 function Bee:update(dT)
   if love.keyboard.wasPressed('space') then
       self.dY = -50
   end
 
-  self.y = self.y + self.dY * dT
-  self.dY = self.dY + GRAVITY * dT
+  if self.y + self.h + self.dY * dT < VIRTUAL_HEIGHT then
+    self.y = self.y + self.dY * dT
+    self.dY = self.dY + GRAVITY * dT
+  end
 end
 
 function Bee:render()
