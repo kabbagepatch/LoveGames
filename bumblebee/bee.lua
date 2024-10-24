@@ -26,13 +26,16 @@ end
 function Bee:update(dt)
   if love.keyboard.wasPressed('space') then
     self.dy = -0.3
+    sounds['jump']:play()
   end
 
   self.dy = self.dy + GRAVITY * dt
 
   self.y = self.y + self.dy
-  if self.y > VIRTUAL_HEIGHT then
-    self.y = VIRTUAL_HEIGHT
+  if self.y + self.height > VIRTUAL_HEIGHT - 12 then
+    self.y = VIRTUAL_HEIGHT - self.height - 12
+    self.dy = -0.15
+    sounds['jump']:play()
   elseif self.y < 0 then
     self.y = 0
   end

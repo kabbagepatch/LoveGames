@@ -4,6 +4,12 @@ Class = require 'class'
 require 'bee'
 require 'pipe'
 
+require 'StateMachine'
+require 'states/BaseState'
+require 'states/PlayState'
+require 'states/CountdownState'
+require 'states/TitleState'
+
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
@@ -16,16 +22,12 @@ local BACKGROUND_SCROLL_SPEED = 30
 local BACKGROUND_LOOPING_POINT = 413
 local ground = love.graphics.newImage('ground.png')
 local groundScroll = 0
-local GROUND_SCROLL_SPEED = 60
+GROUND_SCROLL_SPEED = 60
 
-local bee = Bee()
-
-local pipes = {}
-
-local scrolling = true
+scrolling = true
 
 function love.load()
-  love.window.setTitle('Bumble Bwi')
+  love.window.setTitle('Bumble Bee')
   love.graphics.setDefaultFilter('nearest', 'nearest')
   love.keyboard.keysPressed = {}
   pipeSpawnTimer = 2
@@ -42,6 +44,20 @@ function love.load()
     fullscreen = false,
     resizable = true
   })
+
+  sounds = {
+    ['dead'] = love.audio.newSource('sounds/dead.wav', 'static'),
+    ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
+    ['jump'] = love.audio.newSource('sounds/jump.wav', 'static'),
+    ['count'] = love.audio.newSource('sounds/count.wav', 'static')
+  }
+
+  gStateMachine = StateMachine {
+    ['title'] = function() return TitleScreenState() end,
+    ['countdown'] = function() return CountdownState() end,
+    ['play'] = function() return PlayState() end,
+  }
+  gStateMachine:change('title')
 end
 
 function love.keypressed(key)
@@ -49,6 +65,11 @@ function love.keypressed(key)
   
   if key == 'escape' then
     love.event.quit()
+  end
+
+  if key == 'r' or key == 'R' then
+    gStateMachine:change('countdown')
+    scrolling = true
   end
 end
 
@@ -69,27 +90,7 @@ function love.update(dt)
     backgroundScroll = (backgroundScroll + BACKGROUND_SCROLL_SPEED * dt) % BACKGROUND_LOOPING_POINT
     groundScroll = (groundScroll + GROUND_SCROLL_SPEED * dt) % VIRTUAL_WIDTH
     
-    pipeSpawnTimer = pipeSpawnTimer + dt
-    if pipeSpawnTimer > 2 then
-      table.insert(pipes, Pipe())
-      pipeSpawnTimer = 0
-    end
-    
-    bee:update(dt)
-
-    for k, pipe in pairs(pipes) do
-      pipe:update(dt)
-
-      if bee:collides(pipe) then
-          scrolling = false
-      end
-    end
-
-    for k, pipe in pairs(pipes) do
-      if pipe.x < -pipe.width then
-          table.remove(pipes, k)
-      end
-    end
+    gStateMachine:update(dt)
   end
 
   love.keyboard.keysPressed = {}
@@ -101,10 +102,7 @@ function love.draw()
   love.graphics.draw(background, -backgroundScroll, 0)
   love.graphics.draw(ground, -groundScroll, VIRTUAL_HEIGHT - 16)
 
-  bee:render()
-  for k, pipe in pairs(pipes) do
-    pipe:render()
-  end
+  gStateMachine:render()
 
   push:finish()
 end
